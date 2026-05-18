@@ -229,7 +229,6 @@ export default function (pi: ExtensionAPI) {
           }
           if (usage && usage.requestPercent >= 0 && usage.requestTotal > 0) {
             parts.push(`Wk:${usage.requestPercent}%`);
-          }
 
           let left = parts.join(" ");
 
@@ -293,11 +292,11 @@ export default function (pi: ExtensionAPI) {
             `5h  ${bar(d.fiveHourPercent)}  ${d.fiveHourPercent}% used  (${(100 - d.fiveHourPercent).toFixed(1)}% left)  resets ${humanDuration(d.fiveHourResetMs - Date.now())}`,
           );
         }
-        if (d.requestTotal > 0) {
-          lines.push(
-            `Wk  ${bar(d.requestPercent)}  ${d.requestPercent}% used  (${d.requestUsed}/${d.requestTotal})  resets ${humanDuration(d.requestResetMs - Date.now())}`,
-          );
-        }
+          if (d.requestPercent >= 0) {
+            lines.push(
+              `Wk  ${bar(d.requestPercent)}  ${d.requestPercent}% used  resets ${humanDuration(d.requestResetMs - Date.now())}`,
+            );
+          }
 
         ctx.ui.notify(lines.join("\n"), "info");
       } catch (err: any) {
