@@ -42,7 +42,7 @@ When using a ZAI model, the footer shows:
 ↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% Wk:0%    (zai) glm-5.1 • medium
 ```
 
-- `5h:10%` — 5-hour token usage window (with `!` warning at 50%+, `!!` at 80%+)
+- `5h:10%` — 5-hour token usage window (`!` above expected rate, `!!` exceeds 1.5x expected rate)
 - `Wk:0%` — Weekly request limit usage (note: author's plan has no weekly limit, so this field always shows 0%. The actual time window for this field is unconfirmed — it may be weekly, monthly, or per billing cycle. Contributions welcome to clarify)
 
 ## Tool: zai_usage
