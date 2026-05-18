@@ -1,0 +1,15 @@
+{
+  "name": "zai-usage",
+  "version": "1.0.0",
+  "description": "ZAI (智谱/bigmodel.cn) Coding Plan usage monitor for pi coding agent. Shows 5h quota in footer.",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  }
+}
