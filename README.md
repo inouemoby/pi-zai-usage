@@ -2,7 +2,7 @@
 
 Pi Coding Agent extension for monitoring [ZAI (智谱/bigmodel.cn)](https://bigmodel.cn) Coding Plan usage.
 
-Shows 5-hour token quota and weekly request limits in the pi footer bar.
+Shows 5-hour token quota and MCP call limits in the pi footer bar.
 
 ## Install
 
@@ -39,18 +39,18 @@ Or run `/zai-login` without arguments for interactive input.
 When using a ZAI model, the footer shows:
 
 ```
-↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% Wk:0%    (zai) glm-5.1 • medium
+↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% MCP:0%    (zai) glm-5.1 • medium
 ```
 
-- `5h:10%` — 5-hour token usage window (`!` above expected rate, `!!` exceeds 1.5x expected rate)
-- `Wk:0%` — Weekly request limit usage (note: author's plan has no weekly limit, so this field always shows 0%. The actual time window for this field is unconfirmed — it may be weekly, monthly, or per billing cycle. Contributions welcome to clarify)
+- `5h:10%` — 5-hour token usage window (shared with vision MCP). `!` above expected rate, `!!` exceeds 1.5× expected rate
+- `MCP:0%` — Monthly MCP call limit (search + web-reader + vision MCP calls, e.g. Pro plan = 1000/month)
 
 ## Tool: zai_usage
 
 The extension also registers an `zai_usage` tool that the AI can call:
 
 ```
-Check ZAI Coding Plan usage (5h quota & weekly request limits)
+Check ZAI Coding Plan usage (5h quota & MCP limits)
 ```
 
 ## Data Storage

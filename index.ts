@@ -122,7 +122,7 @@ async function fetchUsage(token: string): Promise<UsageData> {
       fiveHourPercent = lim.percentage;
       fiveHourResetMs = lim.nextResetTime;
     } else if (lim.type === "TIME_LIMIT") {
-      // Weekly request limit
+      // Monthly MCP call limit (search + web-reader + vision MCP)
       requestPercent = lim.percentage;
       requestUsed = lim.currentValue ?? 0;
       requestTotal = lim.usage ?? 0;
@@ -241,7 +241,7 @@ export default function (pi: ExtensionAPI) {
           if (usage && usage.requestPercent >= 0 && usage.requestTotal > 0) {
             const wSev = usageSeverity(usage.requestPercent, WEEK_MS, usage.requestResetMs);
             const wFlag = wSev === 2 ? "!!" : wSev === 1 ? "!" : "";
-            parts.push(`${wFlag}Wk:${usage.requestPercent}%`);
+            parts.push(`${wFlag}MCP:${usage.requestPercent}%`);
           }
 
           let left = parts.join(" ");
@@ -308,7 +308,7 @@ export default function (pi: ExtensionAPI) {
         }
           if (d.requestPercent >= 0) {
             lines.push(
-              `Wk  ${bar(d.requestPercent)}  ${d.requestPercent}% used  resets ${humanDuration(d.requestResetMs - Date.now())}`,
+              `MCP ${bar(d.requestPercent)}  ${d.requestPercent}% used  (${d.requestUsed}/${d.requestTotal})  resets ${humanDuration(d.requestResetMs - Date.now())}`,
             );
           }
 
@@ -373,7 +373,7 @@ export default function (pi: ExtensionAPI) {
         };
 
         if (d.requestTotal > 0) {
-          result.weekly = {
+          result.mcp = {
             used: d.requestUsed,
             total: d.requestTotal,
             percentage: d.requestPercent,
