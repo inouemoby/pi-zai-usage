@@ -238,12 +238,6 @@ export default function (pi: ExtensionAPI) {
             const sFlag = sSev === 2 ? "!!" : sSev === 1 ? "!" : "";
             parts.push(`${sFlag}5h:${usage.fiveHourPercent}%`);
           }
-          if (usage && usage.requestPercent >= 0 && usage.requestTotal > 0) {
-            const wSev = usageSeverity(usage.requestPercent, WEEK_MS, usage.requestResetMs);
-            const wFlag = wSev === 2 ? "!!" : wSev === 1 ? "!" : "";
-            parts.push(`${wFlag}MCP:${usage.requestPercent}%`);
-          }
-
           let left = parts.join(" ");
 
           // Right side: model info
@@ -306,12 +300,6 @@ export default function (pi: ExtensionAPI) {
             `5h  ${bar(d.fiveHourPercent)}  ${d.fiveHourPercent}% used  (${(100 - d.fiveHourPercent).toFixed(1)}% left)  resets ${humanDuration(d.fiveHourResetMs - Date.now())}`,
           );
         }
-          if (d.requestPercent >= 0) {
-            lines.push(
-              `MCP ${bar(d.requestPercent)}  ${d.requestPercent}% used  (${d.requestUsed}/${d.requestTotal})  resets ${humanDuration(d.requestResetMs - Date.now())}`,
-            );
-          }
-
         ctx.ui.notify(lines.join("\n"), "info");
       } catch (err: any) {
         ctx.ui.notify(`ZAI: ${err.message}`, "error");
@@ -372,14 +360,6 @@ export default function (pi: ExtensionAPI) {
           },
         };
 
-        if (d.requestTotal > 0) {
-          result.mcp = {
-            used: d.requestUsed,
-            total: d.requestTotal,
-            percentage: d.requestPercent,
-            resetsIn: humanDuration(d.requestResetMs - Date.now()),
-          };
-        }
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           details: result,
