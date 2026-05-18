@@ -242,6 +242,7 @@ export default function (pi: ExtensionAPI) {
             const wSev = usageSeverity(usage.requestPercent, WEEK_MS, usage.requestResetMs);
             const wFlag = wSev === 2 ? "!!" : wSev === 1 ? "!" : "";
             parts.push(`${wFlag}Wk:${usage.requestPercent}%`);
+          }
 
           let left = parts.join(" ");
 
