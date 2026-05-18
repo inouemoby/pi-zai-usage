@@ -37,6 +37,8 @@ interface UsageData {
 }
 
 const CACHE_MS = 60_000;
+const FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ─── Global Token Storage ────────────────────────────────────────
 const CONFIG_DIR = join(homedir(), ".config", "pi-zai-usage");
@@ -66,6 +68,17 @@ function clearGlobalToken() {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
+/** Returns severity: 0=normal, 1=above expected, 2=critical (1.5x expected) */
+function usageSeverity(pct: number, windowMs: number, resetMs: number): number {
+  const remainingMs = resetMs - Date.now();
+  const elapsedMs = Math.max(0, windowMs - remainingMs);
+  const elapsedRatio = elapsedMs / windowMs;
+  const expectedPct = elapsedRatio * 100;
+  if (pct > expectedPct * 1.5) return 2;
+  if (pct > expectedPct)      return 1;
+  return 0;
+}
+
 function humanDuration(untilMs: number): string {
   if (untilMs <= 0) return "now";
   const m = Math.floor(untilMs / 60000);
@@ -221,14 +234,14 @@ export default function (pi: ExtensionAPI) {
 
           // ZAI usage
           if (usage && usage.fiveHourPercent >= 0) {
-            const pct = usage.fiveHourPercent;
-            let flag = "";
-            if (pct > 80) flag = "!!";
-            else if (pct > 50) flag = "!";
-            parts.push(`${flag}5h:${pct}%`);
+            const sSev = usageSeverity(usage.fiveHourPercent, FIVE_HOUR_MS, usage.fiveHourResetMs);
+            const sFlag = sSev === 2 ? "!!" : sSev === 1 ? "!" : "";
+            parts.push(`${sFlag}5h:${usage.fiveHourPercent}%`);
           }
           if (usage && usage.requestPercent >= 0 && usage.requestTotal > 0) {
-            parts.push(`Wk:${usage.requestPercent}%`);
+            const wSev = usageSeverity(usage.requestPercent, WEEK_MS, usage.requestResetMs);
+            const wFlag = wSev === 2 ? "!!" : wSev === 1 ? "!" : "";
+            parts.push(`${wFlag}Wk:${usage.requestPercent}%`);
 
           let left = parts.join(" ");
 

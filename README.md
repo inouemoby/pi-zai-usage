@@ -39,7 +39,7 @@ Or run `/zai-login` without arguments for interactive input.
 When using a ZAI model, the footer shows:
 
 ```
-↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% Wk:0%    (zai) glm-4-plus • medium
+↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% Wk:0%    (zai) glm-5.1 • medium
 ```
 
 - `5h:10%` — 5-hour token usage window (with `!` warning at 50%+, `!!` at 80%+)
@@ -64,4 +64,3 @@ Fetches usage from `https://bigmodel.cn/api/monitor/usage/quota/limit` using you
 ## Related
 
 - [pi-ollama-usage](https://github.com/inouemoby/pi-ollama-usage) — Same tool for Ollama Cloud
-- [pi-setting](https://github.com/inouemoby/pi-setting) — Pi settings backup/restore across devices
