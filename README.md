@@ -2,7 +2,7 @@
 
 Pi Coding Agent extension for monitoring [ZAI (智谱/bigmodel.cn)](https://bigmodel.cn) Coding Plan usage.
 
-Shows 5-hour token quota and request limits in the pi footer bar.
+Shows 5-hour token quota and weekly request limits in the pi footer bar.
 
 ## Install
 
@@ -39,18 +39,18 @@ Or run `/zai-login` without arguments for interactive input.
 When using a ZAI model, the footer shows:
 
 ```
-↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% Req:0/1000    (zai) glm-4-plus • medium
+↑3.2k ↓1.1k 12.5%/128k (auto) 5h:10% Wk:0%    (zai) glm-4-plus • medium
 ```
 
 - `5h:10%` — 5-hour token usage window (with `!` warning at 50%+, `!!` at 80%+)
-- `Req:0/1000` — Monthly request limit usage
+- `Wk:0%` — Weekly request limit usage
 
 ## Tool: zai_usage
 
 The extension also registers an `zai_usage` tool that the AI can call:
 
 ```
-Check ZAI Coding Plan usage (5h quota & request limits)
+Check ZAI Coding Plan usage (5h quota & weekly request limits)
 ```
 
 ## Data Storage
@@ -60,3 +60,8 @@ Token is stored globally at `~/.config/pi-zai-usage/session.json` — configure 
 ## API
 
 Fetches usage from `https://bigmodel.cn/api/monitor/usage/quota/limit` using your token as Bearer authentication. The token is a JWT from the `bigmodel_token_production` cookie and is long-lived (~1 year).
+
+## Related
+
+- [pi-ollama-usage](https://github.com/inouemoby/pi-ollama-usage) — Same tool for Ollama Cloud
+- [pi-setting](https://github.com/inouemoby/pi-setting) — Pi settings backup/restore across devices

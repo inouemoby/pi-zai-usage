@@ -109,7 +109,7 @@ async function fetchUsage(token: string): Promise<UsageData> {
       fiveHourPercent = lim.percentage;
       fiveHourResetMs = lim.nextResetTime;
     } else if (lim.type === "TIME_LIMIT") {
-      // Monthly request limit
+      // Weekly request limit
       requestPercent = lim.percentage;
       requestUsed = lim.currentValue ?? 0;
       requestTotal = lim.usage ?? 0;
@@ -227,6 +227,9 @@ export default function (pi: ExtensionAPI) {
             else if (pct > 50) flag = "!";
             parts.push(`${flag}5h:${pct}%`);
           }
+          if (usage && usage.requestPercent >= 0 && usage.requestTotal > 0) {
+            parts.push(`Wk:${usage.requestPercent}%`);
+          }
 
           let left = parts.join(" ");
 
@@ -290,6 +293,12 @@ export default function (pi: ExtensionAPI) {
             `5h  ${bar(d.fiveHourPercent)}  ${d.fiveHourPercent}% used  (${(100 - d.fiveHourPercent).toFixed(1)}% left)  resets ${humanDuration(d.fiveHourResetMs - Date.now())}`,
           );
         }
+        if (d.requestTotal > 0) {
+          lines.push(
+            `Wk  ${bar(d.requestPercent)}  ${d.requestPercent}% used  (${d.requestUsed}/${d.requestTotal})  resets ${humanDuration(d.requestResetMs - Date.now())}`,
+          );
+        }
+
         ctx.ui.notify(lines.join("\n"), "info");
       } catch (err: any) {
         ctx.ui.notify(`ZAI: ${err.message}`, "error");
@@ -350,6 +359,14 @@ export default function (pi: ExtensionAPI) {
           },
         };
 
+        if (d.requestTotal > 0) {
+          result.weekly = {
+            used: d.requestUsed,
+            total: d.requestTotal,
+            percentage: d.requestPercent,
+            resetsIn: humanDuration(d.requestResetMs - Date.now()),
+          };
+        }
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           details: result,
