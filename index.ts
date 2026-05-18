@@ -227,9 +227,6 @@ export default function (pi: ExtensionAPI) {
             else if (pct > 50) flag = "!";
             parts.push(`${flag}5h:${pct}%`);
           }
-          if (usage && usage.requestPercent >= 0 && usage.requestTotal > 0) {
-            parts.push(`Req:${usage.requestUsed}/${usage.requestTotal}`);
-          }
 
           let left = parts.join(" ");
 
@@ -240,7 +237,7 @@ export default function (pi: ExtensionAPI) {
             const tl = thinkingLevel;
             right = tl === "off" ? `${right} • thinking off` : `${right} • ${tl}`;
           }
-          if (fd.getAvailableProviderCount?.() > 1 && m) {
+          if (m) {
             const withProv = `(${m.provider}) ${right}`;
             if (visibleWidth(left) + 2 + visibleWidth(withProv) <= width) {
               right = withProv;
@@ -293,12 +290,6 @@ export default function (pi: ExtensionAPI) {
             `5h  ${bar(d.fiveHourPercent)}  ${d.fiveHourPercent}% used  (${(100 - d.fiveHourPercent).toFixed(1)}% left)  resets ${humanDuration(d.fiveHourResetMs - Date.now())}`,
           );
         }
-        if (d.requestTotal > 0) {
-          lines.push(
-            `Req ${bar(d.requestPercent)}  ${d.requestUsed}/${d.requestTotal}  resets ${humanDuration(d.requestResetMs - Date.now())}`,
-          );
-        }
-
         ctx.ui.notify(lines.join("\n"), "info");
       } catch (err: any) {
         ctx.ui.notify(`ZAI: ${err.message}`, "error");
@@ -358,14 +349,7 @@ export default function (pi: ExtensionAPI) {
             resetsIn: humanDuration(d.fiveHourResetMs - Date.now()),
           },
         };
-        if (d.requestTotal > 0) {
-          result.requests = {
-            used: d.requestUsed,
-            total: d.requestTotal,
-            percentage: d.requestPercent,
-            resetsIn: humanDuration(d.requestResetMs - Date.now()),
-          };
-        }
+
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           details: result,
