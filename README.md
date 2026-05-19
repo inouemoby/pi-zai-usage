@@ -7,7 +7,7 @@ Shows 5-hour token quota in the pi footer bar. The 5-hour pool is shared with vi
 ## Install
 
 ```bash
-pi install https://github.com/inouemoby/pi-zai-usage.git
+pi install git:github.com/inouemoby/pi-zai-usage
 ```
 
 ## Setup
