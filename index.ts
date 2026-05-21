@@ -154,7 +154,10 @@ export default function (pi: ExtensionAPI) {
     return usage;
   }
 
-  function isZAI(ctx: any) { return ctx.model?.provider === "zai"; }
+  function isZAI(ctx: any) {
+    const p = ctx.model?.provider?.toLowerCase() ?? "";
+    return p === "zai" || p === "bigmodel" || p.includes("zai") || p.includes("bigmodel");
+  }
   function trigger() { if (_tui) setTimeout(() => _tui.requestRender?.(), 0); }
 
   // ── Refresh ─────────────────────────────────────────────────
