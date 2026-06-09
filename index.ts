@@ -3,8 +3,8 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { homedir } from "os";
-import { join } from "path";
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { resolve, dirname } from "path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 
 // ─── Types ───────────────────────────────────────────────────────
 interface QuotaLimit {
@@ -40,31 +40,42 @@ const CACHE_MS = 60_000;
 const FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-// ─── Global Token Storage ────────────────────────────────────────
-const CONFIG_DIR = join(homedir(), ".config", "pi-zai-usage");
-const CONFIG_FILE = join(CONFIG_DIR, "session.json");
+// ─── Settings Storage ────────────────────────────────────────────
+const SETTINGS_KEY = "zaiUsage";
 
-function readGlobalToken(): string {
-  try {
-    const raw = readFileSync(CONFIG_FILE, "utf-8");
-    const obj = JSON.parse(raw);
-    return obj.token ?? "";
-  } catch {
-    return "";
-  }
+function getSettingsPath(): string {
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  return resolve(home, ".pi", "agent", "settings.json");
 }
 
-function writeGlobalToken(token: string) {
+function readSettings(): Record<string, any> {
   try {
-    mkdirSync(CONFIG_DIR, { recursive: true });
-    writeFileSync(CONFIG_FILE, JSON.stringify({ token, _savedAt: new Date().toISOString() }), "utf-8");
-  } catch { /* best effort */ }
+    const path = getSettingsPath();
+    if (!existsSync(path)) return {};
+    return JSON.parse(readFileSync(path, "utf-8"));
+  } catch { return {}; }
 }
 
-function clearGlobalToken() {
-  try {
-    writeFileSync(CONFIG_FILE, JSON.stringify({ token: "", _clearedAt: new Date().toISOString() }), "utf-8");
-  } catch { /* best effort */ }
+function writeSettings(data: Record<string, any>) {
+  const path = getSettingsPath();
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(data, null, 2), "utf-8");
+}
+
+function readToken(): string {
+  return readSettings()[SETTINGS_KEY]?.token ?? "";
+}
+
+function saveToken(token: string) {
+  const settings = readSettings();
+  settings[SETTINGS_KEY] = { ...(settings[SETTINGS_KEY] || {}), token };
+  writeSettings(settings);
+}
+
+function clearToken() {
+  const settings = readSettings();
+  settings[SETTINGS_KEY] = { ...(settings[SETTINGS_KEY] || {}), token: "" };
+  writeSettings(settings);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -145,7 +156,7 @@ export default function (pi: ExtensionAPI) {
   let _tui: any = null;
   let thinkingLevel = "off";
 
-  function saveToken() { writeGlobalToken(token); }
+  function persistToken() { saveToken(token); }
 
   async function getUsage(): Promise<UsageData> {
     if (!token) throw new Error("Not logged in. Run /zai-login.");
@@ -277,7 +288,8 @@ export default function (pi: ExtensionAPI) {
 
   // ── Events ─────────────────────────────────────────────────
   pi.on("session_start", async (_e, ctx) => {
-    token = readGlobalToken();
+    // Load token from settings.json
+    token = readToken();
     thinkingLevel = pi.getThinkingLevel?.() || "off";
     toggleFooter(ctx);
     if (token) refresh(ctx);
@@ -322,7 +334,7 @@ export default function (pi: ExtensionAPI) {
         if (!input?.trim()) return ctx.ui.notify("Cancelled.", "warning");
         token = input.trim();
       }
-      saveToken(); usage = null; toggleFooter(ctx);
+      saveToken(token); usage = null; toggleFooter(ctx);
       ctx.ui.notify("✓ ZAI token saved!", "success");
       refresh(ctx);
     },
@@ -333,7 +345,7 @@ export default function (pi: ExtensionAPI) {
     description: "Clear token",
     handler: async (_args, ctx) => {
       token = ""; usage = null;
-      clearGlobalToken();
+      clearToken();
       ctx.ui.setFooter(undefined as any);
       footerOn = false; _tui = null;
       ctx.ui.notify("✓ ZAI token cleared", "success");
