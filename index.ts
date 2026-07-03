@@ -2,9 +2,8 @@ import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { homedir } from "os";
-import { resolve, dirname } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { resolve } from "path";
+import { existsSync, readFileSync } from "fs";
 
 // ─── Types ───────────────────────────────────────────────────────
 interface QuotaLimit {
@@ -19,12 +18,6 @@ interface QuotaLimit {
   usageDetails?: { modelCode: string; usage: number }[];
 }
 
-interface QuotaData {
-  limits: QuotaLimit[];
-  level: string;
-  _ts: number;
-}
-
 interface UsageData {
   fiveHourPercent: number;
   fiveHourResetMs: number;
@@ -32,50 +25,27 @@ interface UsageData {
   requestUsed: number;
   requestTotal: number;
   requestResetMs: number;
+  requestDetails?: { modelCode: string; usage: number }[];
   level: string;
   _ts: number;
 }
 
 const CACHE_MS = 60_000;
 const FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-// ─── Settings Storage ────────────────────────────────────────────
-const SETTINGS_KEY = "zaiUsage";
-
-function getSettingsPath(): string {
+// ─── API Key Storage ─────────────────────────────────────────────
+function getAuthPath(): string {
   const home = process.env.HOME || process.env.USERPROFILE || "";
-  return resolve(home, ".pi", "agent", "settings.json");
+  return resolve(home, ".pi", "agent", "auth.json");
 }
 
-function readSettings(): Record<string, any> {
+function readApiKey(): string {
   try {
-    const path = getSettingsPath();
-    if (!existsSync(path)) return {};
-    return JSON.parse(readFileSync(path, "utf-8"));
-  } catch { return {}; }
-}
-
-function writeSettings(data: Record<string, any>) {
-  const path = getSettingsPath();
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(data, null, 2), "utf-8");
-}
-
-function readToken(): string {
-  return readSettings()[SETTINGS_KEY]?.token ?? "";
-}
-
-function saveToken(token: string) {
-  const settings = readSettings();
-  settings[SETTINGS_KEY] = { ...(settings[SETTINGS_KEY] || {}), token };
-  writeSettings(settings);
-}
-
-function clearToken() {
-  const settings = readSettings();
-  settings[SETTINGS_KEY] = { ...(settings[SETTINGS_KEY] || {}), token: "" };
-  writeSettings(settings);
+    const path = getAuthPath();
+    if (!existsSync(path)) return "";
+    const auth = JSON.parse(readFileSync(path, "utf-8"));
+    return auth?.zai?.key ?? "";
+  } catch { return ""; }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -110,10 +80,10 @@ function formatTokens(count: number): string {
 }
 
 // ─── Fetch ───────────────────────────────────────────────────────
-async function fetchUsage(token: string): Promise<UsageData> {
+async function fetchUsage(apiKey: string): Promise<UsageData> {
   const resp = await fetch("https://bigmodel.cn/api/monitor/usage/quota/limit", {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: apiKey,
       Accept: "application/json",
     },
   });
@@ -126,6 +96,7 @@ async function fetchUsage(token: string): Promise<UsageData> {
 
   let fiveHourPercent = -1, fiveHourResetMs = 0;
   let requestPercent = -1, requestUsed = 0, requestTotal = 0, requestResetMs = 0;
+  let requestDetails: { modelCode: string; usage: number }[] | undefined;
 
   for (const lim of limits) {
     if (lim.type === "TOKENS_LIMIT") {
@@ -138,30 +109,29 @@ async function fetchUsage(token: string): Promise<UsageData> {
       requestUsed = lim.currentValue ?? 0;
       requestTotal = lim.usage ?? 0;
       requestResetMs = lim.nextResetTime;
+      requestDetails = lim.usageDetails;
     }
   }
 
   return {
     fiveHourPercent, fiveHourResetMs,
-    requestPercent, requestUsed, requestTotal, requestResetMs,
+    requestPercent, requestUsed, requestTotal, requestResetMs, requestDetails,
     level, _ts: Date.now(),
   };
 }
 
 // ─── Main ────────────────────────────────────────────────────────
 export default function (pi: ExtensionAPI) {
-  let token = "";
+  let apiKey = "";
   let usage: UsageData | null = null;
   let footerOn = false;
   let _tui: any = null;
   let thinkingLevel = "off";
 
-  function persistToken() { saveToken(token); }
-
   async function getUsage(): Promise<UsageData> {
-    if (!token) throw new Error("Not logged in. Run /zai-login.");
+    if (!apiKey) throw new Error("ZAI API key not found in ~/.pi/agent/auth.json");
     if (usage && Date.now() - usage._ts < CACHE_MS) return usage;
-    usage = await fetchUsage(token);
+    usage = await fetchUsage(apiKey);
     return usage;
   }
 
@@ -173,7 +143,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── Refresh ─────────────────────────────────────────────────
   async function refresh(ctx: any) {
-    if (!token) return;
+    if (!apiKey) return;
     if (!isZAI(ctx)) {
       if (usage) { usage = null; toggleFooter(ctx); }
       return;
@@ -183,7 +153,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── Footer ──────────────────────────────────────────────────
   function toggleFooter(ctx: any) {
-    if (isZAI(ctx) && token) {
+    if (isZAI(ctx) && apiKey) {
       if (!footerOn) {
         ctx.ui.setFooter(buildFooter(ctx));
         footerOn = true;
@@ -288,16 +258,15 @@ export default function (pi: ExtensionAPI) {
 
   // ── Events ─────────────────────────────────────────────────
   pi.on("session_start", async (_e, ctx) => {
-    // Load token from settings.json
-    token = readToken();
+    apiKey = readApiKey();
     thinkingLevel = pi.getThinkingLevel?.() || "off";
     toggleFooter(ctx);
-    if (token) refresh(ctx);
+    if (apiKey) refresh(ctx);
   });
 
-  pi.on("model_select", async (_e, ctx) => { toggleFooter(ctx); if (token) refresh(ctx); });
+  pi.on("model_select", async (_e, ctx) => { toggleFooter(ctx); if (apiKey) refresh(ctx); });
   pi.on("thinking_level_select", async (event: any) => { thinkingLevel = event.level || "off"; trigger(); });
-  pi.on("agent_end", async (_e, ctx) => { if (token) refresh(ctx); });
+  pi.on("agent_end", async (_e, ctx) => { if (apiKey) refresh(ctx); });
 
   // ── /zai ────────────────────────────────────────────────
   pi.registerCommand("zai", {
@@ -315,40 +284,22 @@ export default function (pi: ExtensionAPI) {
             `5h  ${bar(d.fiveHourPercent)}  ${d.fiveHourPercent}% used  (${(100 - d.fiveHourPercent).toFixed(1)}% left)  resets ${humanDuration(d.fiveHourResetMs - Date.now())}`,
           );
         }
+        if (d.requestPercent >= 0) {
+          lines.push(
+            `MCP ${bar(d.requestPercent)}  ${d.requestUsed}/${d.requestTotal} calls  (${d.requestPercent}% used)  resets ${humanDuration(d.requestResetMs - Date.now())}`,
+          );
+          if (d.requestDetails?.length) {
+            const det = d.requestDetails
+              .filter(x => x.usage > 0)
+              .map(x => `${x.modelCode}:${x.usage}`)
+              .join("  ");
+            if (det) lines.push(`    └ ${det}`);
+          }
+        }
         ctx.ui.notify(lines.join("\n"), "info");
       } catch (err: any) {
         ctx.ui.notify(`ZAI: ${err.message}`, "error");
       }
-    },
-  });
-
-  // ── /zai-login ──────────────────────────────────────────
-  pi.registerCommand("zai-login", {
-    description: "Set token: /zai-login <bigmodel_token_production>  (no args = interactive)",
-    handler: async (args, ctx) => {
-      const t = (args ?? "").trim();
-      if (t) {
-        token = t;
-      } else {
-        const input = await ctx.ui.input("ZAI Login — bigmodel_token_production value:");
-        if (!input?.trim()) return ctx.ui.notify("Cancelled.", "warning");
-        token = input.trim();
-      }
-      saveToken(token); usage = null; toggleFooter(ctx);
-      ctx.ui.notify("✓ ZAI token saved!", "success");
-      refresh(ctx);
-    },
-  });
-
-  // ── /zai-logout ─────────────────────────────────────────
-  pi.registerCommand("zai-logout", {
-    description: "Clear token",
-    handler: async (_args, ctx) => {
-      token = ""; usage = null;
-      clearToken();
-      ctx.ui.setFooter(undefined as any);
-      footerOn = false; _tui = null;
-      ctx.ui.notify("✓ ZAI token cleared", "success");
     },
   });
 
@@ -372,6 +323,12 @@ export default function (pi: ExtensionAPI) {
             used: d.fiveHourPercent,
             remaining: d.fiveHourPercent >= 0 ? +(100 - d.fiveHourPercent).toFixed(1) : -1,
             resetsIn: humanDuration(d.fiveHourResetMs - Date.now()),
+          },
+          requests: {
+            used: d.requestUsed,
+            total: d.requestTotal,
+            percent: d.requestPercent,
+            resetsIn: humanDuration(d.requestResetMs - Date.now()),
           },
         };
 

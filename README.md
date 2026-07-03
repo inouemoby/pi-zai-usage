@@ -12,27 +12,13 @@ pi install git:github.com/inouemoby/pi-zai-usage
 
 ## Setup
 
-### Step 1: Get your token
-
-1. Log in to [bigmodel.cn](https://bigmodel.cn) in your browser
-2. Open browser DevTools → Application → Cookies → `bigmodel.cn`
-3. Copy the value of the `bigmodel_token_production` cookie
-
-### Step 2: Configure in pi
-
-```
-/zai-login <your-bigmodel_token_production-value>
-```
-
-Or run `/zai-login` without arguments for interactive input.
+No login needed. The extension reads your ZAI API key directly from pi's auth config (`~/.pi/agent/auth.json` → `zai.key`) — the same key pi uses to call GLM models. Just make sure pi is configured with the `zai` provider (run `/auth zai` if not).
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `/zai` | Show detailed usage with progress bars |
-| `/zai-login` | Set authentication token (saved globally) |
-| `/zai-logout` | Clear stored token |
 
 ## Footer Display
 
@@ -58,13 +44,9 @@ The extension also registers an `zai_usage` tool that the AI can call:
 Check ZAI Coding Plan usage (5h quota)
 ```
 
-## Data Storage
-
-Token is stored globally at `~/.config/pi-zai-usage/session.json` — configure once, works in all pi sessions across all directories.
-
 ## API
 
-Fetches usage from `https://bigmodel.cn/api/monitor/usage/quota/limit` using your token as Bearer authentication. The token is a JWT from the `bigmodel_token_production` cookie and is long-lived (~1 year).
+Fetches usage from `https://bigmodel.cn/api/monitor/usage/quota/limit` using your ZAI API key (sent raw in the `Authorization` header). The API natively returns usage percentage and reset timestamps for both the 5-hour token window (`TOKENS_LIMIT`) and the monthly MCP call limit (`TIME_LIMIT`).
 
 ## Related
 
