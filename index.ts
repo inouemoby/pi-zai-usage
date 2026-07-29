@@ -307,12 +307,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "zai_usage",
     label: "ZAI Usage",
-    description: "Check ZAI (智谱/bigmodel.cn) Coding Plan usage: 5-hour quota percentage and request limits.",
-    promptSnippet: "Check ZAI Coding Plan usage (5h quota & request limits)",
-    promptGuidelines: [
-      "Use zai_usage to check ZAI Coding Plan quota before expensive operations.",
-      "Use zai_usage when the user asks about ZAI usage, limits, or remaining credits.",
-    ],
+    description: "Get current ZAI Coding Plan usage.",
     parameters: Type.Object({}),
     async execute(_id: any, _p: any, _s: any, _up: any, ctx: any) {
       try {
