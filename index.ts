@@ -1,7 +1,6 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { Type } from "typebox";
 import { resolve } from "path";
 import { existsSync, readFileSync } from "fs";
 
@@ -303,37 +302,4 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // ── zai_usage tool ──────────────────────────────────────
-  pi.registerTool({
-    name: "zai_usage",
-    label: "ZAI Usage",
-    description: "Get current ZAI Coding Plan usage.",
-    parameters: Type.Object({}),
-    async execute(_id: any, _p: any, _s: any, _up: any, ctx: any) {
-      try {
-        const d = await getUsage();
-        const result: any = {
-          plan: d.level,
-          fiveHour: {
-            used: d.fiveHourPercent,
-            remaining: d.fiveHourPercent >= 0 ? +(100 - d.fiveHourPercent).toFixed(1) : -1,
-            resetsIn: humanDuration(d.fiveHourResetMs - Date.now()),
-          },
-          requests: {
-            used: d.requestUsed,
-            total: d.requestTotal,
-            percent: d.requestPercent,
-            resetsIn: humanDuration(d.requestResetMs - Date.now()),
-          },
-        };
-
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-          details: result,
-        };
-      } catch (err: any) {
-        return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
-      }
-    },
-  });
 }
