@@ -36,14 +36,6 @@ When using a ZAI model, the footer shows:
 - **MCP calls** (search + web-reader): Monthly limit (Pro = 1000/month). Not shown — if you need it, run `/zai` for details.
 - **Vision MCP**: Shares the 5h pool, no separate call limit.
 
-## Tool: zai_usage
-
-The extension also registers an `zai_usage` tool that the AI can call:
-
-```
-Check ZAI Coding Plan usage (5h quota)
-```
-
 ## API
 
 Fetches usage from `https://bigmodel.cn/api/monitor/usage/quota/limit` using your ZAI API key (sent raw in the `Authorization` header). The API natively returns usage percentage and reset timestamps for both the 5-hour token window (`TOKENS_LIMIT`) and the monthly MCP call limit (`TIME_LIMIT`).
